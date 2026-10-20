@@ -9,7 +9,7 @@
 ```
 【参赛申请】
 项目名称：麦值 M-Value · 麦当劳浓度检测器
-项目地址：https://github.com/你的用户名/mcd-m-value
+项目地址：https://github.com/arroyonorma944-svg/mcd-m-value
 项目简介：读取麦当劳历史订单，用一个 0-100 的 M 值量化你对金拱门的浓度，五维加权评分 + 等级判定 + 钠摄入估算，全部基于 MCP order-list 真实数据
 ```
 

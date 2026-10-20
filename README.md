@@ -104,7 +104,7 @@ M 值不是拍脑袋定出来的，五个维度各对应订单里的一种可观
 项目零依赖，用浏览器打开即可运行。
 
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/arroyonorma944-svg/mcd-m-value.git
 cd mcd-m-value
 # 方式一：直接打开
 open index.html        # macOS
