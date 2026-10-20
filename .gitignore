@@ -34,3 +34,7 @@ run_engine.js
 diag.js
 shot.js
 shot2.js
+
+# 本地工具脚本
+推送.bat
+*.bat
