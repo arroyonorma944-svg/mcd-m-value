@@ -40,3 +40,26 @@ shot2.js
 *.bat
 推送.ps1
 *.ps1
+
+# 开发期一次性脚本与探测产物（绝不提交：部分含 Token 或线上抓取数据）
+_push_via_api.py
+_submit_issue.py
+_rank.py
+_shots_online.js
+_probe404.js
+_*.py
+_*.js
+gh_*.json
+pages.json
+init.json
+iss.json
+i3*.json
+off*.json
+off_readme.txt
+s*.json
+sq.json
+r2.json
+tree.json
+rank_out.txt
+page_now.html
+off_readme.md

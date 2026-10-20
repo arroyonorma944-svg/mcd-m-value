@@ -624,12 +624,14 @@
     const text = '我的麦当劳 M 值：' + r.mValue + ' / 100\n' +
       r.tier.emoji + ' ' + r.tier.name + '——' + r.tier.tag + '\n' +
       '（' + r.stats.orderCount + ' 单 / 跨度 ' + r.stats.spanDays + ' 天 / 累计自付 ' + r.stats.totalSpent + ' 元）\n' +
+      '你是哪一档？打开就能测：https://arroyonorma944-svg.github.io/mcd-m-value/\n' +
       '#麦值 #MCODE2026';
+    const done = function () {
+      $('btn-share').textContent = '已复制，去粘贴吧';
+      setTimeout(function () { $('btn-share').textContent = '生成分享文案'; }, 2000);
+    };
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(function () {
-        $('btn-share').textContent = '已复制，去粘贴吧';
-        setTimeout(function () { $('btn-share').textContent = '生成分享文案'; }, 2000);
-      });
+      navigator.clipboard.writeText(text).then(done).catch(function () { window.prompt('复制下面的文案：', text); });
     } else {
       window.prompt('复制下面的文案：', text);
     }
