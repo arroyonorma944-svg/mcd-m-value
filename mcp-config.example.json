@@ -1,0 +1,12 @@
+{
+  "_comment": "麦当劳 MCP 配置示例（已脱敏）。使用前把 YOUR_MCP_TOKEN 换成你自己的 Token。Token 申请：https://open.mcd.cn/mcp",
+  "mcpServers": {
+    "mcd-mcp": {
+      "type": "streamablehttp",
+      "url": "https://mcp.mcd.cn",
+      "headers": {
+        "Authorization": "Bearer YOUR_MCP_TOKEN"
+      }
+    }
+  }
+}

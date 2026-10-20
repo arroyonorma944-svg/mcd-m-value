@@ -1,0 +1,2 @@
+# 保持文件原始换行符，避免 Windows CRLF 污染 diff
+* text=auto eol=lf

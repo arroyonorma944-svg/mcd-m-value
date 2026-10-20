@@ -1,0 +1,36 @@
+# 依赖
+node_modules/
+package-lock.json
+yarn.lock
+
+# 环境变量与密钥
+.env
+.env.*
+!.env.example
+*.token
+secrets.json
+
+# 本地调试
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# 真实订单数据（含个人信息，绝不提交）
+real_orders.json
+real_nutrition.json
+orderlist.json
+tools.json
+t_*.json
+
+# 截图产物
+shot_*.png
+*.screenshot.png
+
+# 临时脚本
+run_engine.js
+diag.js
+shot.js
+shot2.js

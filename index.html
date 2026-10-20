@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>麦值 M-Value · 测测你的麦当劳浓度</title>
+<meta name="description" content="基于麦当劳 MCP 历史订单数据，算出你的 M 值（麦当劳浓度值）。五维雷达、等级判定、钠摄入估算。">
+<style>
+  :root {
+    --mcd-red: #da291c;
+    --mcd-yellow: #ffc72c;
+    --mcd-dark: #1b1b1b;
+    --bg: #fbf7f0;
+    --card: #ffffff;
+    --text: #1f1f1f;
+    --text-dim: #6b6560;
+    --border: #e8e0d4;
+    --shadow: 0 2px 8px rgba(0,0,0,.06), 0 12px 32px rgba(0,0,0,.05);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    padding-bottom: 60px;
+  }
+
+  /* ---------- 顶部 ---------- */
+  .hero {
+    background: var(--mcd-red);
+    color: #fff;
+    padding: 28px 20px 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::after {
+    content: "";
+    position: absolute;
+    right: -60px; top: -60px;
+    width: 220px; height: 220px;
+    border-radius: 50%;
+    background: var(--mcd-yellow);
+    opacity: .16;
+  }
+  .hero-inner { max-width: 720px; margin: 0 auto; position: relative; z-index: 1; }
+  .brand {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 12px; letter-spacing: .12em; text-transform: uppercase;
+    opacity: .85; margin-bottom: 10px; font-weight: 600;
+  }
+  .brand b { color: var(--mcd-yellow); }
+  h1 {
+    font-size: 30px; line-height: 1.2; font-weight: 800; letter-spacing: -.02em;
+  }
+  h1 .val { color: var(--mcd-yellow); }
+  .sub {
+    margin-top: 10px; font-size: 14px; opacity: .9; max-width: 520px;
+  }
+
+  /* ---------- 容器 ---------- */
+  .wrap { max-width: 720px; margin: 0 auto; padding: 0 20px; }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 22px;
+    margin-top: 18px;
+    box-shadow: var(--shadow);
+  }
+
+  /* ---------- 模式切换 ---------- */
+  .switch {
+    display: flex; gap: 8px; margin-top: 18px;
+    background: rgba(255,255,255,.14);
+    padding: 4px; border-radius: 12px;
+    max-width: 720px; margin-left: auto; margin-right: auto;
+  }
+  .switch button {
+    flex: 1; border: 0; background: transparent; color: #fff;
+    font-size: 13px; font-weight: 600; padding: 9px 10px;
+    border-radius: 9px; cursor: pointer; font-family: inherit;
+    transition: background .18s, color .18s;
+    opacity: .8;
+  }
+  .switch button[aria-pressed="true"] {
+    background: #fff; color: var(--mcd-red); opacity: 1;
+  }
+
+  /* ---------- 分数 ---------- */
+  .score-head { text-align: center; }
+  .score-num {
+    font-size: 76px; font-weight: 800; line-height: 1;
+    letter-spacing: -.04em; color: var(--mcd-red);
+    font-variant-numeric: tabular-nums;
+  }
+  .score-num small { font-size: 22px; color: var(--text-dim); font-weight: 600; margin-left: 2px; }
+  .score-tier {
+    display: inline-block; margin-top: 12px;
+    background: var(--mcd-dark); color: var(--mcd-yellow);
+    padding: 6px 16px; border-radius: 100px;
+    font-size: 15px; font-weight: 700;
+  }
+  .score-tag { margin-top: 10px; color: var(--text-dim); font-size: 14px; }
+
+  .gauge {
+    margin: 22px auto 6px; height: 12px; border-radius: 100px;
+    background: linear-gradient(90deg, #d8d2c8 0%, #f6d97a 45%, var(--mcd-red) 100%);
+    position: relative; max-width: 460px;
+  }
+  .gauge-mark {
+    position: absolute; top: -5px; width: 4px; height: 22px;
+    background: var(--mcd-dark); border-radius: 2px;
+    transform: translateX(-50%);
+    transition: left .7s cubic-bezier(.2,.8,.2,1);
+  }
+  .gauge-scale {
+    display: flex; justify-content: space-between; max-width: 460px;
+    margin: 6px auto 0; font-size: 11px; color: var(--text-dim);
+  }
+
+  /* ---------- 维度条 ---------- */
+  .dim { margin-top: 16px; }
+  .dim:first-child { margin-top: 4px; }
+  .dim-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .dim-right { display: inline-flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+  .dim-name { font-size: 14px; font-weight: 700; }
+  .dim-name .rev {
+    font-size: 10px; font-weight: 600; color: var(--text-dim);
+    border: 1px solid var(--border); border-radius: 4px;
+    padding: 1px 5px; margin-left: 6px; vertical-align: 2px;
+    white-space: nowrap; display: inline-block; line-height: 1.4;
+  }
+  .dim-val { font-size: 15px; font-weight: 800; color: var(--mcd-red); font-variant-numeric: tabular-nums; }
+  .bar { height: 8px; background: #f0ebe3; border-radius: 100px; margin-top: 6px; overflow: hidden; }
+  .bar > i {
+    display: block; height: 100%; border-radius: 100px;
+    background: linear-gradient(90deg, var(--mcd-yellow), var(--mcd-red));
+    width: 0; transition: width .8s cubic-bezier(.2,.8,.2,1);
+  }
+  .dim-detail { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
+
+  /* ---------- 雷达 ---------- */
+  .radar-wrap { display: flex; justify-content: center; margin-top: 4px; }
+  svg.radar { width: 100%; max-width: 340px; height: auto; }
+
+  /* ---------- 洞察 ---------- */
+  .insight {
+    display: flex; gap: 12px; padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .insight:last-child { border-bottom: 0; padding-bottom: 2px; }
+  .insight-ico { font-size: 20px; line-height: 1.3; flex: 0 0 auto; }
+  .insight-body h4 { font-size: 14px; font-weight: 700; margin-bottom: 3px; }
+  .insight-body p { font-size: 13px; color: var(--text-dim); }
+
+  /* ---------- 统计格 ---------- */
+  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 4px; }
+  .cell {
+    background: #faf7f2; border-radius: 10px; padding: 12px 14px;
+    border: 1px solid var(--border);
+  }
+  .cell-k { font-size: 11px; color: var(--text-dim); }
+  .cell-v { font-size: 19px; font-weight: 800; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .cell-v em { font-size: 12px; font-weight: 600; color: var(--text-dim); font-style: normal; }
+
+  /* ---------- 柱状图 ---------- */
+  .hist { display: flex; align-items: flex-end; gap: 3px; height: 84px; margin-top: 12px; }
+  .hist-col { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; height: 100%; }
+  .hist-col i {
+    display: block; background: #e2dbd0; border-radius: 3px 3px 0 0; min-height: 2px;
+    transition: height .6s cubic-bezier(.2,.8,.2,1);
+  }
+  .hist-col i.on { background: var(--mcd-red); }
+  .hist-x { display: flex; justify-content: space-between; font-size: 10px; color: var(--text-dim); margin-top: 4px; }
+
+  /* ---------- 按钮 ---------- */
+  .actions { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+  .btn {
+    flex: 1 1 180px; border: 0; font-family: inherit; cursor: pointer;
+    padding: 13px 18px; border-radius: 12px; font-size: 14px; font-weight: 700;
+    transition: transform .12s, box-shadow .2s, background .2s;
+  }
+  .btn:active { transform: scale(.98); }
+  .btn-primary { background: var(--mcd-red); color: #fff; box-shadow: 0 4px 14px rgba(218,41,28,.28); }
+  .btn-primary:hover { background: #c4241a; }
+  .btn-ghost { background: #fff; color: var(--text); border: 1px solid var(--border); }
+  .btn-ghost:hover { border-color: #c9bfb1; }
+
+  /* ---------- 提示条 ---------- */
+  .notice {
+    background: #fff8e6; border: 1px solid #f0dca8; color: #7a5a10;
+    padding: 12px 14px; border-radius: 10px; font-size: 13px; margin-top: 14px;
+  }
+  .notice b { color: #5c4200; }
+
+  .footer {
+    text-align: center; font-size: 12px; color: var(--text-dim);
+    margin-top: 26px; line-height: 1.9;
+  }
+  .footer a { color: var(--mcd-red); text-decoration: none; }
+
+  .hidden { display: none !important; }
+
+  @media (max-width: 480px) {
+    h1 { font-size: 25px; }
+    .score-num { font-size: 62px; }
+    .card { padding: 18px 16px; border-radius: 14px; }
+    .grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-inner">
+    <div class="brand"><b>M</b>-VALUE · 麦值</div>
+    <h1>你的 <span class="val">M 值</span> 是多少？</h1>
+    <p class="sub">读取麦当劳历史订单，用一个 0–100 的分数，度量你对金拱门的浓度。</p>
+  </div>
+  <div class="wrap" style="margin-top:18px;padding:0;">
+    <div class="switch" role="group" aria-label="数据来源">
+      <button id="tab-demo" aria-pressed="true">📊 示例数据</button>
+      <button id="tab-live" aria-pressed="false">🔗 我的真实订单</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- 数据源说明 -->
+  <div id="src-note" class="card">
+    <p style="font-size:13px;color:var(--text-dim)">
+      <b style="color:var(--text)">当前展示的是模拟示例数据</b>，用于演示评分逻辑与页面效果。
+      <br>想看自己的真实 M 值：在 WorkBuddy 中连接麦当劳 MCP，一句话触发 <code style="background:#f3eee6;padding:1px 5px;border-radius:4px;font-size:12px">order-list</code>，即可生成真实报告。
+    </p>
+  </div>
+
+  <!-- 成绩单 -->
+  <section id="report" class="hidden">
+
+    <div class="card">
+      <div class="score-head">
+        <div class="score-num"><span id="m-val">0</span><small>/100</small></div>
+        <div class="score-tier" id="m-tier">—</div>
+        <div class="score-tag" id="m-tag">—</div>
+      </div>
+      <div class="gauge"><div class="gauge-mark" id="gauge-mark" style="left:0%"></div></div>
+      <div class="gauge-scale"><span>路过</span><span>常客</span><span>麦门圣徒</span></div>
+    </div>
+
+    <div class="card">
+      <h2 style="font-size:15px;margin-bottom:14px">五维拆解</h2>
+  <div class="radar-wrap">
+    <svg class="radar" id="radar" viewBox="0 0 340 330" role="img" aria-label="五维雷达图"></svg>
+  </div>
+      <div id="dims" style="margin-top:18px"></div>
+    </div>
+
+    <div class="card">
+      <h2 style="font-size:15px;margin-bottom:8px">数据洞察</h2>
+      <div id="insights"></div>
+    </div>
+
+    <div class="card">
+      <h2 style="font-size:15px;margin-bottom:14px">订单画像</h2>
+      <div class="grid" id="statGrid"></div>
+
+      <div style="margin-top:18px">
+        <div class="dim-k" style="font-size:12px;color:var(--text-dim)">下单时段分布</div>
+        <div class="hist" id="hist"></div>
+        <div class="hist-x"><span>0时</span><span>6时</span><span>12时</span><span>18时</span><span>23时</span></div>
+      </div>
+
+      <div style="margin-top:20px">
+        <div style="font-size:12px;color:var(--text-dim);margin-bottom:8px">最常点</div>
+        <div id="topItems"></div>
+      </div>
+    </div>
+
+    <div class="card" id="sodiumCard" style="display:none">
+      <h2 style="font-size:15px;margin-bottom:10px">🧂 钠摄入估算</h2>
+      <div id="sodiumBody"></div>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-primary" id="btn-share">生成分享文案</button>
+      <button class="btn btn-ghost" id="btn-demo2">换一套示例数据</button>
+    </div>
+
+    <div class="notice">
+      <b>M 值怎么算的？</b> 五维加权：忠诚度 30%、依赖性 22%、专一度 20%、包容度 16%、探索度 12%（反向）。
+      全部来自订单的客观统计，没有随机数——同样的订单永远得到同样的分数。
+    </div>
+  </section>
+
+  <div class="footer">
+    数据仅在本机浏览器内计算，不上传、不留存。<br>
+    <a href="https://github.com/M-China/mcd-mcp-server">麦当劳 MCP</a> · M-CODE 2026 参赛作品
+  </div>
+</main>
+
+<script src="src/mvalue.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  // =========================================================================
+  // 示例数据：三套，覆盖不同用户画像，让访客能看到分数差异
+  // 生成规则是确定性的（固定日期偏移），不用随机数
+  // =========================================================================
+
+  const STORE_LIST = [
+    '麦当劳上海人民广场餐厅',
+    '麦当劳上海陆家嘴中心餐厅',
+    '麦当劳上海静安嘉里中心餐厅',
+  ];
+
+  /** 构造一条订单 */
+  function mkOrder(i, dateStr, hour, items, amount, storeIdx, status) {
+    return {
+      orderId: 'DEMO' + String(i).padStart(6, '0'),
+      orderType: '1',
+      createTime: dateStr + ' ' + String(hour).padStart(2, '0') + ':' +
+                  String((i * 17) % 60).padStart(2, '0') + ':00',
+      storeCode: '19901' + (storeIdx || 0),
+      storeName: STORE_LIST[storeIdx || 0],
+      orderStatus: status || '订单已完成',
+      realTotalAmount: String(amount),
+      orderProductList: items.map(function (it, k) {
+        return {
+          productCode: 'P' + (900000 + k),
+          productName: it[0],
+          quantity: it[1],
+          comboItemList: [],
+        };
+      }),
+    };
+  }
+
+  // ---------- 画像 A：麦门圣徒（重度 + 极度专一）----------
+  // 真实重度用户的点单方式：菜单基本固定，就是那两三样来回换。
+  function personaSaint() {
+    const list = [];
+    // 只有 3 种组合，其中巨无霸套餐占绝对多数
+    const comboBigMac = [['巨无霸', 1], ['中薯条', 1], ['可口可乐（中）', 1]];
+    const comboGrilled = [['板烧鸡腿堡', 1], ['中薯条', 1], ['可口可乐（中）', 1]];
+    const comboDouble = [['双层吉士堡', 1], ['中薯条', 1], ['可口可乐（中）', 1]];
+    // 26 单里：巨无霸 18 次、板烧 5 次、双层 3 次
+    const menu = [
+      comboBigMac, comboBigMac, comboBigMac,
+      comboBigMac, comboBigMac, comboBigMac,
+      comboBigMac, comboBigMac, comboBigMac,
+      comboBigMac, comboBigMac, comboBigMac,
+      comboBigMac, comboBigMac, comboBigMac,
+      comboBigMac, comboBigMac, comboBigMac,
+      comboGrilled, comboGrilled, comboGrilled,
+      comboGrilled, comboGrilled,
+      comboDouble, comboDouble, comboDouble,
+    ];
+    // 真实重度用户的特征：饭点为主，但深夜也点得动
+    const hours = [12, 12, 18, 19, 12, 13, 22, 23, 12, 18, 12, 17, 12, 12,
+                   1, 12, 23, 12, 22, 0, 12, 2, 18, 12, 1, 23];
+    const days = [
+      '2025-01-08','2025-01-22','2025-02-05','2025-02-19','2025-03-06','2025-03-21',
+      '2025-04-11','2025-05-02','2025-05-28','2025-06-17','2025-07-09','2025-08-14',
+      '2025-09-23','2025-11-05','2025-12-24','2026-01-16','2026-02-27','2026-03-18',
+      '2026-04-24','2026-05-15','2026-06-09','2026-07-21','2026-08-13','2026-09-02',
+      '2026-09-28','2026-10-09',
+    ];
+    days.forEach(function (d, i) {
+      const amps = [38, 41, 35, 52, 44, 39, 33, 58, 42, 47, 36, 55, 43, 48, 62, 40, 37, 45, 49, 34, 46, 51, 38, 44, 53, 39];
+      list.push(mkOrder(i + 1, d, hours[i % hours.length], menu[i], amps[i], i % 2));
+    });
+    return list;
+  }
+
+  // ---------- 画像 B：路过型食客（你自己的真实画像接近这个）----------
+  function personaCasual() {
+    return [
+      mkOrder(1, '2025-11-09', 16, [['圆筒冰淇淋', 2]], '7.5', 0),
+      mkOrder(2, '2026-02-19', 18, [['云朵棉花糖麦旋风', 2]], '24', 2, '部分退款'),
+      mkOrder(3, '2026-08-08', 16, [['蘸酱炸鸡五选一', 1], ['薯条四重奏', 1]], '11.9', 1),
+      mkOrder(4, '2026-08-29', 16, [['双薯双麦乐鸡', 1]], '0', 0),
+      mkOrder(5, '2026-08-29', 17, [['麦乐鸡买一送一', 1]], '0', 0),
+      mkOrder(6, '2026-08-29', 17, [['北美招牌牧场酱', 1]], '3', 0),
+    ];
+  }
+
+  // ---------- 画像 C：甜品党（低频高价、极度专一）----------
+  function personaSweet() {
+    const days = [
+      '2025-05-12','2025-06-03','2025-07-18','2025-08-09','2025-09-27',
+      '2025-12-15','2026-01-30','2026-03-14','2026-05-20','2026-07-07','2026-09-11',
+    ];
+    const menu = [
+      ['麦旋风（奥利奥）', 1],
+      ['麦旋风（奥利奥）', 1],
+      ['新地（草莓）', 1],
+      ['麦旋风（奥利奥）', 2],
+      ['圆筒冰淇淋', 2],
+      ['麦旋风（奥利奥）', 1],
+      ['新地（朱古力）', 1],
+      ['麦旋风（奥利奥）', 1],
+      ['圆筒冰淇淋', 3],
+      ['麦旋风（奥利奥）', 1],
+      ['新地（草莓）', 1],
+    ];
+    return days.map(function (d, i) {
+      return mkOrder(100 + i, d, 16 + (i % 3), menu[i], 9 + (i % 4) * 3, 2);
+    });
+  }
+
+  const PERSONAS = [
+    { name: '麦门圣徒（重度用户）', build: personaSaint },
+    { name: '路过型食客（轻度）', build: personaCasual },
+    { name: '甜品党（专一型）', build: personaSweet },
+  ];
+
+  // =========================================================================
+  // 渲染
+  // =========================================================================
+
+  let personaIdx = 0;
+  let currentReport = null;
+  const NOW = new Date();
+
+  function $(id) { return document.getElementById(id); }
+
+  function render(report) {
+    currentReport = report;
+    $('report').classList.remove('hidden');
+
+    // 分数
+    $('m-val').textContent = report.mValue;
+    $('m-tier').textContent = report.tier.emoji + ' ' + report.tier.name;
+    $('m-tag').textContent = report.tier.tag;
+    $('gauge-mark').style.left = report.mValue + '%';
+
+    // 维度条
+    const ORDER = ['loyalty', 'dependence', 'devotion', 'forgiveness', 'exploration'];
+    $('dims').innerHTML = ORDER.map(function (k) {
+      const d = report.dimensions[k];
+      const pct = Math.round(d.value * 100);
+      return '' +
+        '<div class="dim">' +
+          '<div class="dim-top">' +
+            '<span class="dim-name">' + d.label + '</span>' +
+            '<span class="dim-right">' +
+              (d.reverse ? '<span class="rev">反向</span>' : '') +
+              '<span class="dim-val">' + pct + '</span>' +
+            '</span>' +
+          '</div>' +
+          '<div class="bar"><i data-w="' + pct + '"></i></div>' +
+          '<div class="dim-detail">' + d.detail + '</div>' +
+        '</div>';
+    }).join('');
+
+    // 触发动画
+    requestAnimationFrame(function () {
+      document.querySelectorAll('.bar > i').forEach(function (el) {
+        el.style.width = el.getAttribute('data-w') + '%';
+      });
+    });
+
+    drawRadar(report, ORDER);
+
+    // 洞察
+    $('insights').innerHTML = report.insights.map(function (x) {
+      return '<div class="insight">' +
+        '<div class="insight-ico">' + x.icon + '</div>' +
+        '<div class="insight-body"><h4>' + esc(x.title) + '</h4><p>' + esc(x.text) + '</p></div>' +
+      '</div>';
+    }).join('');
+
+    // 统计格
+    const s = report.stats;
+    const cells = [
+      ['累计下单', s.orderCount, '单'],
+      ['消费跨度', s.spanDays, '天'],
+      ['累计自付', s.totalSpent, '元'],
+      ['付费单均', s.avgSpent, '元'],
+      ['平均间隔', s.avgGapDays, '天'],
+      ['光顾门店', s.distinctStores, '家'],
+    ];
+    $('statGrid').innerHTML = cells.map(function (c) {
+      return '<div class="cell"><div class="cell-k">' + c[0] + '</div>' +
+        '<div class="cell-v">' + c[1] + ' <em>' + c[2] + '</em></div></div>';
+    }).join('');
+
+    // 时段柱状图
+    const max = Math.max.apply(null, s.hourHist.concat([1]));
+    const peak = s.hourHist.indexOf(Math.max.apply(null, s.hourHist));
+    $('hist').innerHTML = s.hourHist.map(function (v, h) {
+      const hgt = Math.round((v / max) * 100);
+      return '<div class="hist-col" title="' + h + '时：' + v + ' 单">' +
+        '<i class="' + (v === max && v > 0 ? 'on' : '') + '" style="height:' + Math.max(hgt, v > 0 ? 8 : 2) + '%"></i>' +
+      '</div>';
+    }).join('');
+
+    // 常点商品
+    $('topItems').innerHTML = s.topItems.slice(0, 5).map(function (it, i) {
+      const w = Math.round((it.count / s.topItems[0].count) * 100);
+      return '<div style="margin-bottom:8px">' +
+        '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px">' +
+          '<span>' + (i + 1) + '. ' + esc(it.name) + '</span>' +
+          '<span style="color:var(--text-dim)">' + it.count + ' 份</span>' +
+        '</div>' +
+        '<div class="bar" style="height:6px"><i style="width:' + w + '%"></i></div>' +
+      '</div>';
+    }).join('');
+
+    // 钠
+    const na = report.sodium;
+    if (na && na.ok && na.totalSodiumMg > 0) {
+      $('sodiumCard').style.display = '';
+      const g = (na.totalSodiumMg / 1000).toFixed(1);
+      $('sodiumBody').innerHTML =
+        '<div style="font-size:28px;font-weight:800;color:var(--mcd-red)">' + g + ' <span style="font-size:14px">克</span></div>' +
+        '<div style="font-size:13px;color:var(--text-dim);margin-top:4px">' +
+          '相当于世卫组织建议上限（2 克/天）的 ' + (na.totalSodiumMg / 2000).toFixed(1) + ' 天量。' +
+          '营养数据覆盖了 ' + na.coverage + '% 的订单。' +
+        '</div>' +
+        (na.reliable ? '' :
+          '<div class="notice" style="margin-top:10px">⚠️ 覆盖率偏低（' + na.coverage +
+          '%），这个数字只代表已匹配到营养数据的部分，不是你的完整摄入量。</div>');
+    } else {
+      $('sodiumCard').style.display = 'none';
+    }
+  }
+
+  /** 画五维雷达图 */
+  function drawRadar(report, order) {
+    const svg = $('radar');
+    const W = 340, H = 330;
+    const cx = W / 2, cy = H / 2 + 6, R = 112;
+    const n = order.length;
+    const labels = order.map(function (k) { return report.dimensions[k].label; });
+    const vals = order.map(function (k) { return report.dimensions[k].value; });
+
+    function pt(i, r) {
+      const a = -Math.PI / 2 + (i * 2 * Math.PI) / n;
+      return [cx + Math.cos(a) * r, cy + Math.sin(a) * r];
+    }
+
+    let html = '';
+
+    // 网格
+    [0.25, 0.5, 0.75, 1].forEach(function (lv) {
+      const pts = [];
+      for (let i = 0; i < n; i++) pts.push(pt(i, R * lv).map(function (v) { return v.toFixed(1); }).join(','));
+      html += '<polygon points="' + pts.join(' ') + '" fill="none" stroke="#e8e0d4" stroke-width="1"/>';
+    });
+
+    // 轴线
+    for (let i = 0; i < n; i++) {
+      const p = pt(i, R);
+      html += '<line x1="' + cx + '" y1="' + cy + '" x2="' + p[0].toFixed(1) + '" y2="' + p[1].toFixed(1) +
+              '" stroke="#e8e0d4" stroke-width="1"/>';
+    }
+
+    // 数据多边形
+    // 视觉优化：值域 0-1 若线性映射，0.6 的维度会挤在中心，雷达图显得"扁"。
+    // 用 sqrt 做轻微外扩（0.6 -> 0.775），保证 60 分档也能撑出明显面积，
+    // 同时 1.0 仍然落在最外圈，不改变量纲含义。
+    function radialScale(v) {
+      return Math.sqrt(Math.max(v, 0.02));
+    }
+    const dpts = [];
+    for (let i = 0; i < n; i++) dpts.push(pt(i, R * radialScale(vals[i])).map(function (v) { return v.toFixed(1); }).join(','));
+    html += '<polygon points="' + dpts.join(' ') + '" fill="rgba(218,41,28,.16)" stroke="#da291c" stroke-width="2" stroke-linejoin="round"/>';
+
+    // 顶点
+    for (let i = 0; i < n; i++) {
+      const p = pt(i, R * radialScale(vals[i]));
+      html += '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="3.5" fill="#da291c"/>';
+    }
+
+    // 标签
+    for (let i = 0; i < n; i++) {
+      const p = pt(i, R + 24);
+      const anchor = Math.abs(p[0] - cx) < 6 ? 'middle' : (p[0] > cx ? 'start' : 'end');
+      html += '<text x="' + p[0].toFixed(1) + '" y="' + (p[1] + 4).toFixed(1) +
+              '" text-anchor="' + anchor + '" font-size="12" font-weight="700" fill="#1f1f1f">' + labels[i] + '</text>';
+    }
+
+    svg.innerHTML = html;
+  }
+
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  // =========================================================================
+  // 交互
+  // =========================================================================
+
+  function loadPersona(idx) {
+    personaIdx = idx;
+    const p = PERSONAS[idx];
+    const orders = p.build();
+    // demo 里没有营养表，钠估算会被跳过（符合设计：无数据不瞎猜）
+    const report = window.MValue.computeMValue(orders, { now: NOW });
+    render(report);
+  }
+
+  $('btn-demo2').addEventListener('click', function () {
+    loadPersona((personaIdx + 1) % PERSONAS.length);
+    $('btn-demo2').textContent = '换一套示例数据（' + PERSONAS[personaIdx].name + '）';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  $('btn-share').addEventListener('click', function () {
+    if (!currentReport) return;
+    const r = currentReport;
+    const text = '我的麦当劳 M 值：' + r.mValue + ' / 100\n' +
+      r.tier.emoji + ' ' + r.tier.name + '——' + r.tier.tag + '\n' +
+      '（' + r.stats.orderCount + ' 单 / 跨度 ' + r.stats.spanDays + ' 天 / 累计自付 ' + r.stats.totalSpent + ' 元）\n' +
+      '#麦值 #MCODE2026';
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        $('btn-share').textContent = '已复制，去粘贴吧';
+        setTimeout(function () { $('btn-share').textContent = '生成分享文案'; }, 2000);
+      });
+    } else {
+      window.prompt('复制下面的文案：', text);
+    }
+  });
+
+  $('tab-live').addEventListener('click', function () {
+    alert('真实订单模式需要麦当劳 MCP Token。\n\n' +
+      '页面是纯静态站点，无法安全存储 Token，所以真实查询请在 WorkBuddy 里完成：\n' +
+      '连接器 → 配置 mcd-mcp → 对话里说「算算我的 M 值」。\n\n' +
+      '本页只负责演示评分逻辑。');
+  });
+
+  // 首屏加载
+  loadPersona(0);
+  $('btn-demo2').textContent = '换一套示例数据（' + PERSONAS[1].name + '）';
+
+})();
+</script>
+</body>
+</html>
