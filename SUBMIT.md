@@ -1,19 +1,22 @@
 # 报名材料
 
-## Issue 报名正文（严格按官方格式，勿改动格式）
+## 已提交（2026-10-22）
 
-> ⚠️ 官方明确警告：标题与正文之间、字段名与内容之间**不要换行**；项目地址**不要用 Markdown 链接语法**，直接贴裸 URL。否则自动校验会失败。
+**报名仓库**：`M-China/mcd-developer-innovation-challenge`（官方报名仓库，937+ 报名 Issue）
 
-把下面三行**连着复制**，中间不要加空行：
+**Issue**：https://github.com/M-China/mcd-developer-innovation-challenge/issues/1046
+
+> 注：早前误提交到 `M-China/mcd-mcp-server`（Issue #31）。该仓库是 MCP 接入指南文档库，不是报名入口。已在正确仓库补交 #1046。
+
+## Issue 报名正文（实际提交版本）
+
+官方要求：**正文必须单行，中间不能有任何换行**；项目地址**不能用 Markdown 链接语法**，直接贴裸 URL。
 
 ```
-【参赛申请】
-项目名称：麦值 M-Value · 麦当劳浓度检测器
-项目地址：https://github.com/arroyonorma944-svg/mcd-m-value
-项目简介：读取麦当劳历史订单，用一个 0-100 的 M 值量化你对金拱门的浓度，五维加权评分 + 等级判定 + 钠摄入估算，全部基于 MCP order-list 真实数据
+【参赛申请】项目名称：麦值 M-Value（麦当劳浓度检测器） 项目地址：https://github.com/arroyonorma944-svg/mcd-m-value 项目简介：读取用户的麦当劳历史订单（order-list）与官方营养表（list-nutrition-foods），用一个 0-100 的 M 值量化「麦门浓度」。五维加权评分：忠诚度 30%、依赖性 22%、专一度 20%、包容度 16%、探索度 12%（反向），六档等级判定，附钠摄入估算与行为洞察。所有分数由确定性公式计算，零随机数，相同订单必得相同结果，可复现可检验；纯前端单文件实现，订单数据不上传、不出浏览器。开发工具 WorkBuddy，开发对话存档见仓库 workbuddy.md。在线体验：https://arroyonorma944-svg.github.io/mcd-m-value/
 ```
 
-Issue 标题（可自由填写）：
+Issue 标题：
 
 ```
 【参赛申请】麦值 M-Value · 麦当劳浓度检测器

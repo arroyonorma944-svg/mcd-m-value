@@ -3,7 +3,7 @@
 > 读取你的麦当劳历史订单，用一个 0–100 的分数，度量你对金拱门的浓度。
 
 [![在线体验](https://img.shields.io/badge/%F0%9F%91%89_%E7%82%B9%E8%BF%99%E9%87%8C-%E5%9C%A8%E7%BA%BF%E6%B5%8B%E4%B8%80%E4%B8%8B-da291c?style=for-the-badge)](https://arroyonorma944-svg.github.io/mcd-m-value/)
-[![M-CODE 2026](https://img.shields.io/badge/M--CODE_2026-%E5%8F%82%E8%B5%9B%E4%BD%9C%E5%93%81-ffc72c?style=flat-square)](https://github.com/M-China/mcd-mcp-server/issues/31)
+[![M-CODE 2026](https://img.shields.io/badge/M--CODE_2026-%E5%8F%82%E8%B5%9B%E4%BD%9C%E5%93%81-ffc72c?style=flat-square)](https://github.com/M-China/mcd-developer-innovation-challenge/issues/1046)
 [![零依赖](https://img.shields.io/badge/dependencies-0-brightgreen?style=flat-square)](./src/mvalue.js)
 [![测试](https://img.shields.io/badge/tests-111%20passed-brightgreen?style=flat-square)](./test.js)
 
