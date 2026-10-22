@@ -41,6 +41,10 @@ shot2.js
 推送.ps1
 *.ps1
 
+# 内部运营文档（本地保留，不入公开仓库：含拉票策略、门槛测算，公开会被误读为刷榜）
+SUBMIT.md
+PUSH_GUIDE.md
+
 # 开发期一次性脚本与探测产物（绝不提交：部分含 Token 或线上抓取数据）
 _push_via_api.py
 _submit_issue.py
