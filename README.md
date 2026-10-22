@@ -7,6 +7,8 @@
 [![零依赖](https://img.shields.io/badge/dependencies-0-brightgreen?style=flat-square)](./src/mvalue.js)
 [![测试](https://img.shields.io/badge/tests-111%20passed-brightgreen?style=flat-square)](./test.js)
 
+<img src="./og.png" alt="麦值 M-Value：你的麦当劳 M 值是多少" width="100%">
+
 **不用装、不用登录，打开就是满屏效果。**
 
 ---

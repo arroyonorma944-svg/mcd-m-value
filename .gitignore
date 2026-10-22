@@ -47,8 +47,12 @@ _submit_issue.py
 _rank.py
 _shots_online.js
 _probe404.js
+_verify_share.js
+_mobile_check.js
+_render_og.js
 _*.py
 _*.js
+_*.html
 gh_*.json
 pages.json
 init.json
@@ -59,7 +63,12 @@ off_readme.txt
 s*.json
 sq.json
 r2.json
+repo_now.json
+iss31.json
 tree.json
-rank_out.txt
+rank_out*.txt
+push_out.txt
 page_now.html
+live.html
 off_readme.md
+m_*.png
